@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PROYECTO | Retail Deportivo</title>
+
+<style>
+body{
+  margin:0;
+  font-family:Arial, Helvetica, sans-serif;
+  background:#f4f6f9;
+}
+
+/* TOP BAR */
+.topbar{
+  background:#111;
+  color:white;
+  padding:10px 30px;
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+}
+
+.topbar h1{
+  margin:0;
+  font-size:20px;
+  letter-spacing:1px;
+}
+
+.cart-btn{
+  background:#e63946;
+  border:none;
+  color:white;
+  padding:8px 15px;
+  cursor:pointer;
+  border-radius:5px;
+}
+
+/* LAYOUT */
+.main{
+  display:grid;
+  grid-template-columns:250px 1fr;
+  gap:20px;
+  padding:20px;
+}
+
+/* SIDEBAR */
+.sidebar{
+  background:white;
+  padding:20px;
+  border-radius:10px;
+  box-shadow:0 2px 10px rgba(0,0,0,0.1);
+}
+
+.sidebar h3{
+  margin-top:0;
+}
+
+.sidebar select{
+  width:100%;
+  padding:8px;
+  margin-bottom:15px;
+}
+
+/* PRODUCTS */
+.products{
+  display:grid;
+  grid-template-columns:repeat(auto-fill, minmax(220px,1fr));
+  gap:20px;
+}
+
+.product{
+  background:white;
+  padding:15px;
+  border-radius:10px;
+  box-shadow:0 2px 10px rgba(0,0,0,0.1);
+  text-align:center;
+}
+
+.product img{
+  width:100%;
+  height:150px;
+  object-fit:cover;
+  border-radius:8px;
+}
+
+.product h4{
+  margin:10px 0 5px;
+}
+
+.price{
+  font-weight:bold;
+  color:#1d3557;
+}
+
+.product button{
+  margin-top:10px;
+  padding:8px;
+  width:100%;
+  border:none;
+  background:#457b9d;
+  color:white;
+  border-radius:5px;
+  cursor:pointer;
+}
+
+/* CART PANEL */
+.cart-panel{
+  position:fixed;
+  right:-350px;
+  top:0;
+  width:350px;
+  height:100%;
+  background:white;
+  box-shadow:-2px 0 10px rgba(0,0,0,0.2);
+  padding:20px;
+  transition:0.4s;
+  overflow-y:auto;
+}
+
+.cart-panel.active{
+  right:0;
+}
+
+.cart-item{
+  border-bottom:1px solid #ddd;
+  padding:10px 0;
+}
+
+.total{
+  font-size:18px;
+  font-weight:bold;
+  margin-top:20px;
+}
+</style>
+</head>
+
+<body>
+
+<div class="topbar">
+  <h1>VENTA DE ARTICULOS DEPORTIVOS</h1>
+  <button class="cart-btn" onclick="toggleCart()">🛒 Ver Carrito (<span id="count">0</span>)</button>
+</div>
+
+<div class="main">
+
+  <!-- FILTROS -->
+  <div class="sidebar">
+    <h3>Filtrar Productos</h3>
+
+    <label>Categoría</label>
+    <select id="filter" onchange="renderProducts()">
+      <option value="all">Todas</option>
+      <option value="futbol">Fútbol</option>
+      <option value="gym">Gimnasio</option>
+      <option value="running">Running</option>
+    </select>
+  </div>
+
+  <!-- PRODUCTOS -->
+  <div class="products" id="products"></div>
+
+</div>
+
+<!-- CARRITO -->
+<div class="cart-panel" id="cartPanel">
+  <div class="cart-header">
+    <span class="close-cart" onclick="toggleCart()">←</span>
+    <h2>Tu Carrito</h2>
+  </div>
+
+  <div id="cartItems"></div>
+  <div class="total">Total: $<span id="total">0</span></div>
+  <button onclick="clearCart()">Vaciar Carrito</button>
+
+</div>
+
+</div>
+
+<script>
+
+const products = [
+  {id:1, name:"Balón Elite", price:120000, category:"futbol", img:"https://golty.com.co/wp-content/uploads/2024/07/balon-futbol-profesional-golty-n4-latir-1.webp"},
+  {id:2, name:"Guantes Pro Gym", price:85000, category:"gym", img:"https://lycanfitness.mx/wp-content/uploads/2024/06/GUANTES-DE-ENTRENAMIENTO-LYCAN.jpg"},
+  {id:3, name:"Zapatillas Runner X", price:320000, category:"running", img:"https://tse2.mm.bing.net/th/id/OIP.BojpMTTg1GmkP0kfBLbsFAHaDh?pid=Api&P=0&h=180"},
+  {id:4, name:"Camiseta Deportiva", price:95000, category:"futbol", img:"https://tse1.mm.bing.net/th/id/OIP.V62J1vOk6a0pkJe-QXY9_QHaG8?pid=Api&P=0&h=180"}
+];
+
+let cart = [];
+
+function renderProducts(){
+  const container = document.getElementById("products");
+  const filter = document.getElementById("filter").value;
+  container.innerHTML="";
+
+  const filtered = filter === "all" ? products : products.filter(p=>p.category===filter);
+
+  filtered.forEach(p=>{
+    container.innerHTML+=`
+      <div class="product">
+        <img src="${p.img}">
+        <h4>${p.name}</h4>
+        <div class="price">$${p.price.toLocaleString()}</div>
+        <button onclick="addToCart(${p.id})">Agregar</button>
+      </div>
+    `;
+  });
+}
+
+function addToCart(id){
+  const product = products.find(p=>p.id===id);
+  cart.push(product);
+  updateCart();
+}
+
+function updateCart(){
+  const items = document.getElementById("cartItems");
+  const totalEl = document.getElementById("total");
+  const count = document.getElementById("count");
+
+  items.innerHTML="";
+  let total=0;
+
+  cart.forEach(item=>{
+    total+=item.price;
+    items.innerHTML+=`
+      <div class="cart-item">
+        ${item.name} - $${item.price.toLocaleString()}
+      </div>
+    `;
+  });
+
+  totalEl.textContent=total.toLocaleString();
+  count.textContent=cart.length;
+}
+
+function toggleCart(){
+  document.getElementById("cartPanel").classList.toggle("active");
+}
+
+renderProducts();
+
+</script>
+
+</body>
+</html>
